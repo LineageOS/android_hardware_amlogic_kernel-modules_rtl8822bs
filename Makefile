@@ -16,12 +16,27 @@ EXTRA_CFLAGS += -Wno-unused
 #EXTRA_CFLAGS += -Wno-uninitialized
 EXTRA_CFLAGS += -Wno-pointer-sign
 
+# The Android kernel build compiles external modules with clang and -Werror;
+# this driver predates that, so silence the (harmless) clang-only diagnostics.
+EXTRA_CFLAGS += -Wno-error
+EXTRA_CFLAGS += -Wno-header-guard -Wno-parentheses-equality \
+		-Wno-pointer-bool-conversion -Wno-unused-const-variable \
+		-Wno-typedef-redefinition -Wno-logical-not-parentheses \
+		-Wno-sometimes-uninitialized -Wno-tautological-compare \
+		-Wno-constant-logical-operand -Wno-address-of-packed-member \
+		-Wno-macro-redefined -Wno-implicit-fallthrough \
+		-Wno-misleading-indentation -Wno-enum-conversion \
+		-Wno-self-assign -Wno-unused-but-set-variable
+
 GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
 ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
 endif
 
-EXTRA_CFLAGS += -I$(srctree)/$(src)/include
+# $(src) is relative to $(srctree) when M= is relative, absolute when it is not.
+RTW_SRC = $(if $(filter /%,$(src)),$(src),$(srctree)/$(src))
+
+EXTRA_CFLAGS += -I$(RTW_SRC)/include
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -223,10 +238,10 @@ _HAL_INTFS_FILES :=	hal/hal_intf.o \
 			hal/led/hal_$(HCI_NAME)_led.o
 
 
-EXTRA_CFLAGS += -I$(srctree)/$(src)/platform
+EXTRA_CFLAGS += -I$(RTW_SRC)/platform
 _PLATFORM_FILES := platform/platform_ops.o
 
-EXTRA_CFLAGS += -I$(srctree)/$(src)/hal/btc
+EXTRA_CFLAGS += -I$(RTW_SRC)/hal/btc
 
 ########### HAL_RTL8188E #################################
 ifeq ($(CONFIG_RTL8188E), y)
@@ -1728,11 +1743,15 @@ _PLATFORM_FILES += platform/platform_aml_s905_sdio.o
 endif
 
 ARCH ?= arm64
-CROSS_COMPILE ?= /4.4_S905L_8822bs_compile/gcc-linaro-aarch64-linux-gnu-4.9-2014.09_linux/bin/aarch64-linux-gnu-
+CROSS_COMPILE ?=
 ifndef KSRC
-KSRC := /4.4_S905L_8822bs_compile/common
-# To locate output files in a separate directory.
-KSRC += O=/4.4_S905L_8822bs_compile/KERNEL_OBJ
+# Android build passes KERNEL_SRC/M/O in (see TARGET_KERNEL_EXT_MODULES);
+# fall back to the running kernel for standalone builds.
+ifneq ($(KERNEL_SRC),)
+KSRC := $(KERNEL_SRC)
+else
+KSRC := /lib/modules/$(shell uname -r)/build
+endif
 endif
 
 ifeq ($(CONFIG_RTL8822B), y)
@@ -1987,10 +2006,20 @@ else
 
 export CONFIG_RTL8822BS = m
 
+# Where the module sources live, as seen by the kernel build.
+# The Android build hands us M= on the command line; otherwise use this dir.
+MSRC ?= $(shell pwd)
+ifneq ($(M),)
+MSRC := $(M)
+endif
+
 all: modules
 
 modules:
-	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KSRC) M=$(shell pwd)  modules
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KSRC) M=$(MSRC) modules
+
+modules_install:
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(KSRC) M=$(MSRC) modules_install
 
 strip:
 	$(CROSS_COMPILE)strip $(MODULE_NAME).ko --strip-unneeded
@@ -2042,7 +2071,7 @@ config_r:
 	/bin/bash script/Configure script/config.in
 
 
-.PHONY: modules clean
+.PHONY: modules modules_install clean
 
 clean:
 	#$(MAKE) -C $(KSRC) M=$(shell pwd) clean
