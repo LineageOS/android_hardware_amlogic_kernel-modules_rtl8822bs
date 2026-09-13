@@ -2166,7 +2166,7 @@ unsigned int OnProbeRsp(_adapter *padapter, union recv_frame *precv_frame)
 #endif
 
 
-	if ((mlmeext_chk_scan_state(pmlmeext, SCAN_PROCESS))
+	if (mlmeext_chk_scan_state(pmlmeext, SCAN_PROCESS)
 #ifdef CONFIG_RTW_REPEATER_SON
 		|| (padapter->rtw_rson_scanstage == RSON_SCAN_PROCESS)
 #endif
