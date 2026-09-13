@@ -715,7 +715,7 @@ phydm_lamode_trigger_setting(
 		if ((strcmp(input[1], help) == 0)) {
 			PHYDM_SNPRINTF((output + used, out_len - used, "{En} {0:BB,1:BB_MAC,2:RF0,3:RF1,4:MAC} \n {BB:dbg_port[bit],BB_MAC:0-ok/1-fail/2-cca,MAC:ref} {DMA type} {TrigTime} \n {DbgPort_head/ref_mask} {dbg_port} {0:P_Edge, 1:N_Edge} {SpRate:0-80M,1-40M,2-20M} {Capture num}\n"));
 			/**/
-		} else if ((is_enable_la_mode == 1)) {
+		} else if (is_enable_la_mode == 1) {
 
 			PHYDM_SSCANF(input[2], DCMD_DECIMAL, &var1[1]);
 
