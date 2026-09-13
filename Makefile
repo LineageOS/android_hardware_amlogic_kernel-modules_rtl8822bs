@@ -16,18 +16,6 @@ EXTRA_CFLAGS += -Wno-unused
 #EXTRA_CFLAGS += -Wno-uninitialized
 EXTRA_CFLAGS += -Wno-pointer-sign
 
-# The Android kernel build compiles external modules with clang and -Werror;
-# this driver predates that, so silence the (harmless) clang-only diagnostics.
-EXTRA_CFLAGS += -Wno-error
-EXTRA_CFLAGS += -Wno-header-guard -Wno-parentheses-equality \
-		-Wno-pointer-bool-conversion -Wno-unused-const-variable \
-		-Wno-typedef-redefinition -Wno-logical-not-parentheses \
-		-Wno-sometimes-uninitialized -Wno-tautological-compare \
-		-Wno-constant-logical-operand -Wno-address-of-packed-member \
-		-Wno-macro-redefined -Wno-implicit-fallthrough \
-		-Wno-misleading-indentation -Wno-enum-conversion \
-		-Wno-self-assign -Wno-unused-but-set-variable
-
 GCC_VER_49 := $(shell echo `$(CC) -dumpversion | cut -f1-2 -d.` \>= 4.9 | bc )
 ifeq ($(GCC_VER_49),1)
 EXTRA_CFLAGS += -Wno-date-time	# Fix compile error && warning on gcc 4.9 and later
